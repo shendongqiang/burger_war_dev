@@ -28,7 +28,7 @@ class RandomBot():
             x = 0.2
             th = 0
         elif value < 500:
-            x = -0.2
+            x = 0.2
             th = 0
         elif value < 750:
             x = 0
