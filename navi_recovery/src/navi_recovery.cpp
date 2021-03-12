@@ -524,7 +524,7 @@ void ScanStopper::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
 	double closestRange = scan->ranges[minIndex];
 	int closestIndex = minIndex;
 	for (int currIndex = minIndex + 1; currIndex <= maxIndex; currIndex++) {
-		if (scan->ranges[currIndex] < closestRange) {
+		if ((scan->ranges[currIndex] >=0.001)&&(scan->ranges[currIndex] < closestRange)) {
 			closestRange = scan->ranges[currIndex];
 			closestIndex = currIndex;
 		}
@@ -539,7 +539,7 @@ void ScanStopper::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
 	double closestRange_allDirections = scan->ranges[minIndex_allDirections];
 	int closestIndex_allDirections = minIndex_allDirections;
 	for (int currIndex = minIndex_allDirections + 1; currIndex <= maxIndex_allDirections; currIndex++) {
-		if (scan->ranges[currIndex] < closestRange_allDirections) {
+		if ((scan->ranges[currIndex] >=0.001)&&(scan->ranges[currIndex] < closestRange_allDirections)) {
 			closestRange_allDirections = scan->ranges[currIndex];
 			closestIndex_allDirections = currIndex;
 		}
@@ -556,7 +556,7 @@ void ScanStopper::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
 		ROS_INFO_STREAM("---Closest range_frontDirections---: " << closestRange_frontDirections);
 		ROS_INFO_STREAM("+++Closest Index_frontDirections+++: " << closestIndex_frontDirections);
 
-		if (scan->ranges[currIndex] < closestRange_frontDirections) {
+		if ((scan->ranges[currIndex] >=0.001)&&(scan->ranges[currIndex] < closestRange_frontDirections)) {
 			closestRange_frontDirections = scan->ranges[currIndex];
 			closestIndex_frontDirections = currIndex;
 		}
