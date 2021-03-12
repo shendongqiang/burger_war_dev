@@ -97,14 +97,11 @@ public:
 
 	//void startMoving();
 	void turnAround(int direcIndicator);
-
 	void moveForward();
 	void moveBackward();
-
 	void setLinearVel(double linear_vel);
 	void setAngularVel(double angular_vel);
 	void setVel(double linear_vel, double angular_vel);
-
 	  void myOdomCallBack(const nav_msgs::Odometry::ConstPtr& mymsg);
 	//void odomCallBack(const nav_msgs::Odometry::ConstPtr& msg);
 	  void enemyOdomCallBack(const nav_msgs::Odometry::ConstPtr& odom_);
@@ -338,7 +335,9 @@ int main(int argc, char** argv){
 
 	// Create new drivingControl object
 	DrivingControl drivingControl;
-	//drivingControl.startMoving();
+	//Patrol_cource patrol_cource;
+
+	drivingControl.startMoving();
 
   // チェックポイントをway_point[]に入力していく
   std::string line="";
@@ -532,7 +531,6 @@ int main(int argc, char** argv){
   //======== Driving Control for Patrol ==============
   std::string actionMode;
   std::string patrolSubMode;
-  std::string actionDuration;
   std::string patrolResult;
 	geometry_msgs::Pose goalWaypointPose;
 
@@ -590,9 +588,6 @@ int main(int argc, char** argv){
           if(actionMode.compare("patrol")==0){
               if(goalCancelFlg) goalCancelFlg=false;
 		ros::param::get("/patrolSubMode",patrolSubMode);
-
-              //goal.task_id = 1; 
-
               // ROSではロボットの進行方向がx座標、左方向がy座標、上方向がz座標
               goal.target_pose.pose.position.x =  waypointsForPatrol[waypointIndexPatrol].px;
               goal.target_pose.pose.position.y =  waypointsForPatrol[waypointIndexPatrol].py;
@@ -602,8 +597,6 @@ int main(int argc, char** argv){
 	      goalWaypointPose=goal.target_pose.pose;
 
               ROS_INFO("Sending goal: No.%d", waypointIndexPatrol);
-		//リカバリ走行と情報共有するため
-	      ros::param::set("patrolWaypointIndex",waypointIndexPatrol);
 
 //2021 for roboticsHubChanllenge
               // サーバーにgoalを送信
@@ -872,8 +865,8 @@ int main(int argc, char** argv){
 
 			  //最後のwaypointでは、点数を取得したあとに、試合終了まで、そのまま待機する
 			  //ros::param::set("actionMode","standBy");
-			  //waypointIndexを初期化
-			  waypointIndexPatrol=0;
+			  // waypointIndexを初期化
+			  //waypointIndexPatrol=0;
               		  // サーバーにgoalを送信しない
               		  //ac.sendGoal(goal);
 		}else {
@@ -883,20 +876,7 @@ int main(int argc, char** argv){
               	// 結果が返ってくるまで30.0[s] 待つ。ここでブロックされる。
               	//bool succeeded = ac.waitForResult(ros::Duration(120.0));
               	//ac.waitForResult(ros::Duration(30.0));
-		
-		double actionTime=2.0;
-		//double actionTime=30.0;
-      		if(ros::param::get("/actionDuration",actionDuration)){
-          		if(actionDuration.compare("longTime")==0){
-			  //actionDuartion: longTime
-			  actionTime=6.0;
-			}
-          		if(actionDuration.compare("longlongTime")==0){
-			  //actionDuartion: longlongTime
-			  actionTime=10.0;
-			}
-		}
-              	ac.waitForResult(ros::Duration(actionTime));
+              	ac.waitForResult(ros::Duration(20.0));
 
               	// 結果を見て、成功ならSucceeded、失敗ならFailedと表示
               	actionlib::SimpleClientGoalState state = ac.getState();
@@ -906,11 +886,12 @@ int main(int argc, char** argv){
 	       		ROS_INFO("Succeeded: waypointIndexPatrol No.%d (%s)",goalWayPointIndex, state.toString().c_str());
 			goalWayPointIndex=waypointIndexPatrol;
                		ROS_INFO("nextWayPointIndex: No.%d",goalWayPointIndex);
-			//ros::param::set("patrolWaypointIndex",waypointIndexPatrol);
 			 //サブ走行モード設定：patrolSubMode
 			   ros::param::set("patrolSubMode","preAdjustment");
 
 		}else {
+			pub_goalWaypointPose.publish(goalWaypointPose);
+
                 	ROS_INFO("Failed: waypointIndexPatrol No.%d (%s)",(waypointIndexPatrol-1), state.toString().c_str());
 			//サブ走行モード設定(patrolSubMode)を変更しない：movingToGoalのまま
 			//ros::param::set("patrolSubMode","movingToGoal");
@@ -920,40 +901,33 @@ int main(int argc, char** argv){
 			goalWayPointIndex=waypointIndexPatrol;
                		//ROS_INFO("nextWayPointIndex: No.%d",goalWayPointIndex);
 
-			//リカバリ走行と情報共有するため
-			ros::param::set("patrolWaypointIndex",waypointIndexPatrol);
-			pub_goalWaypointPose.publish(goalWaypointPose);
-
 			//アクション失敗時に、リカバリ走行させる
-			ros::param::set("originalActionMode","patrol");
-			ros::param::set("actionMode","naviRecovery");
+			//ros::param::set("originalActionMode","patrol");
+			//ros::param::set("actionMode","naviRecovery");
             	}
 	  } else{
              //abort
-             // if(!goalCancelFlg){
-             ac.cancelGoal();
-             //   goalCancelFlg=true;
-  	     //   waypointIndexPatrol--;
-             // }
+              if(!goalCancelFlg){
+                ac.cancelGoal();
+                goalCancelFlg=true;
+  	        //waypointIndexPatrol--;
+              }
           }
 
-          if(actionMode.compare("aimEnemy")==0){
+          if(actionMode.compare("moveBackHeadquarter")==0){
 
 	  }
 
-          if(actionMode.compare("naviRecovery")==0){
+          if(actionMode.compare("moveToEnemyHeadquarter")==0){
 
 	  }
-          if(actionMode.compare("moveToRightSide")==0){
 
-	  }
-          if(actionMode.compare("moveToLeftSide")==0){
-
-	  }
           if(actionMode.compare("moveToEnemyRightSide")==0){
 
 	  }
+
           if(actionMode.compare("moveToEnemyLeftSide")==0){
+
 	  }
 
 

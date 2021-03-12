@@ -4,7 +4,7 @@
 #include <fstream>
 
 #include <ros/ros.h>
-#include <ros/package.h>
+#include <ros/package.h>>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
@@ -22,7 +22,7 @@ using namespace std;
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
-struct WaypointPose {
+struct MyPose {
   int num;
   double px;
   double py;
@@ -33,44 +33,8 @@ struct WaypointPose {
   double ow;
 };
 
-struct OdomPose {
-    double x; // x座標[m] 進行方向
-    double y; // y座標[m]
-    double theta; // 姿勢 [rad]
-};
-
 class DrivingControl {
-private:
-	ros::NodeHandle nh;
-	// Publisher to the robot's mode topic
-	//ros::Publisher mode_pub; 
-	// Publisher to the robot's velocity command topic
-	  ros::Publisher cmd_pub; 
-	// Subscriber to the robot's laser scan topic
-	  ros::Subscriber laser_sub; 
-	// Subscriber to the robot's odom topic
-	  ros::Subscriber odom_sub;
-	  ros::Subscriber enemyOdom_sub;
-	// Subscriber to the robot's goalWaypointPose topic
-	//ros::Subscriber pose_sub; 
-	// Indicates whether the robot should continue moving
-	bool keepMoving; 
-	int rotationCounter;
-	bool recoveryFlg;
-	int recoveryCounter;
-	//void moveForward();
-	//void moveBackward();
-	//void turnToTarget();
-	//void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan);
-	//void odomCallback(const nav_msgs::Odometry::ConstPtr& msg);
-	//void enemyOdomCallback(const nav_msgs::Odometry::ConstPtr& odom_);
-	//void poseCallback(const geometry_msgs::Pose::ConstPtr& pose_);
-	OdomPose myPose;
-	nav_msgs::Odometry myOdom;
-	OdomPose enemyPose;
-	nav_msgs::Odometry enemyOdom;
-	geometry_msgs::Twist vel;
-public:
+    public:
 	// Tunable parameters
 	double FORWARD_SPEED_MPS = 0.2;   //0.2
 	double BACKWARD_SPEED_MPS = -0.2; //-0.2
@@ -83,43 +47,56 @@ public:
 	//const static double MAX_SCAN_ANGLE_RAD = +60.0/180*3.14;
 	//const static double MIN_SCAN_ANGLE_RAD = -110.0/180*3.14;
 	//const static double MAX_SCAN_ANGLE_RAD = +110.0/180*3.14;
+
 	double MIN_SCAN_ANGLE_RAD = -1.998;
 	double MAX_SCAN_ANGLE_RAD = +1.998;
+
 	double RECOVERY_MIN_SCAN_ANGLE_RAD = -90.0/180*3.14;
 	double RECOVERY_MAX_SCAN_ANGLE_RAD = +90.0/180*3.14;
+
 	double FRONT_MIN_SCAN_ANGLE_RAD = -15.0/180*3.14;
 	double FRONT_MAX_SCAN_ANGLE_RAD = +15.0/180*3.14;
+
 	// Should be smaller than sensor_msgs::LaserScan::range_max
 	float  BAN_PROXIMITY_RANGE_M = 0.25;  //0.15->0.30->0.25
 	float  MIN_PROXIMITY_RANGE_M = 0.35;  //0.25->0.35->0.30
 	float  BACK_NAVIGATION_RANGE = 0.40;  //0.35->0.40->0.35
+
 	geometry_msgs::Pose goalWaypointPose;
-
-	//void startMoving();
-	void turnAround(int direcIndicator);
-
-	void moveForward();
-	void moveBackward();
-
-	void setLinearVel(double linear_vel);
-	void setAngularVel(double angular_vel);
-	void setVel(double linear_vel, double angular_vel);
-
-	  void myOdomCallBack(const nav_msgs::Odometry::ConstPtr& mymsg);
-	//void odomCallBack(const nav_msgs::Odometry::ConstPtr& msg);
-	  void enemyOdomCallBack(const nav_msgs::Odometry::ConstPtr& odom_);
-	//void enemyOdomCallBack(const nav_msgs::Odometry::ConstPtr& odom_);
-	//void moveForSecond(double linear_vel, double s);
-	//void moveForSecond2(double linear_vel, double s);
-	//void moveToDistance(double linear_vel, double dist);
-
-        void startMoving();
 
 	DrivingControl();
 	//Patrol_cource();
+	//void startMoving();
+	void turnAround(int direcIndicator);
+	void moveForward();
+	void moveBackward();
 
+    private:
+	ros::NodeHandle nh;
+	// Publisher to the robot's mode topic
+	//ros::Publisher mode_pub; 
+	// Publisher to the robot's velocity command topic
+	ros::Publisher cmd_pub; 
+	// Subscriber to the robot's laser scan topic
+	//ros::Subscriber laser_sub; 
+	// Subscriber to the robot's odom topic
+	//ros::Subscriber odom_sub; 
+	// Subscriber to the robot's goalWaypointPose topic
+	//ros::Subscriber pose_sub; 
+
+	// Indicates whether the robot should continue moving
+	bool keepMoving; 
+	int rotationCounter;
+	bool recoveryFlg;
+	int recoveryCounter;
+
+	//void moveForward();
+	//void moveBackward();
+	//void turnToTarget();
+	//void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan);
+	//void odomCallback(const nav_msgs::Odometry::ConstPtr& odom_);
+	//void poseCallback(const geometry_msgs::Pose::ConstPtr& pose_);
 };
-
 
 DrivingControl::DrivingControl()
 {
@@ -131,43 +108,13 @@ DrivingControl::DrivingControl()
 
 	// Advertise a new publisher for the simulated robot's velocity command topic
 	cmd_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 10);
+
 	// Subscribe to the simulated robot's laser scan topic
 	//laser_sub = nh.subscribe("base_scan", 1, &ScanStopper::scanCallback, this);
 	//laser_sub = nh.subscribe("scan", 1, &ScanStopper::scanCallback, this);
-	  odom_sub = nh.subscribe("odom", 1, &DrivingControl::myOdomCallBack, this);
-	//odom_sub = nh.subscribe("odom", 1, &DrivingControl::odomCallback, this);
-	  enemyOdom_sub = nh.subscribe("enemy_bot/odom", 1, &DrivingControl::enemyOdomCallBack, this);
-	//enemyOdom_sub = nh.subscribe("enemy_bot/odom", 1, &DrivingControl::enemyOdomCallback, this);
-	//odom_sub = nh.subscribe<nav_msgs::Odometry>("odom", 1, &DrivingControl::odomCallback, this);
-	//enemyOdom_sub = nh.subscribe<nav_msgs::Odometry>("enemy_bot/odom", 1, &DrivingControl::enemyOdomCallback, this);
+	//odom_sub = nh.subscribe<nav_msgs::Odometry>("odom", 1, &ScanStopper::odomCallback, this);
 	//pose_sub = nh.subscribe<geometry_msgs::Pose>("goalWaypointPose", 1, &ScanStopper::poseCallback, this);
 
-}
-
-void DrivingControl::startMoving()
-{
-	//std::string actionMode;
-	ros::Rate rate(1);
-	ROS_INFO("Start moving");
-
-	// Keep spinning loop until user presses Ctrl+C or the robot got too close to an obstacle
-	//while (ros::ok() && keepMoving) {
-
-	//ros::param::set("/recoveryMode","normalRecovery");
-	recoveryFlg=true;
-	recoveryCounter=0;
-
-	while (ros::ok()) {
-
-		ros::spinOnce(); 
-		rate.sleep();
-	}
-}
-
-// 回転速度の設定
-void DrivingControl::setAngularVel(double angular_vel) {
-    vel.angular.z = angular_vel;
-    cmd_pub.publish(vel);
 }
 
 // Send a Rotation command
@@ -199,13 +146,6 @@ void DrivingControl::turnAround(int direcIndicator) {
 	cmd_pub.publish(msg);
 }
 
-
-// 並進速度の設定
-void DrivingControl::setLinearVel(double linear_vel) {
-    vel.linear.x = linear_vel;
-    cmd_pub.publish(vel);
-}
-
 // Send a velocity command
 void DrivingControl::moveForward() {
 	// The default constructor will set all commands to 0
@@ -224,108 +164,11 @@ void DrivingControl::moveBackward() {
 	cmd_pub.publish(msg);
 }
 
-void DrivingControl::setVel(double linear_vel, double angular_vel = 0) {
-    vel.linear.x  = linear_vel;
-    vel.angular.z = angular_vel;
-    cmd_pub.publish(vel);
-}
-
-// /自分のodomトピックから自分の位置と姿勢、速度を表示
-void DrivingControl::myOdomCallBack(const nav_msgs::Odometry::ConstPtr& mymsg) {
-//void DrivingControl::odomCallBack(const nav_msgs::Odometry::ConstPtr& msg) {
-    myOdom = *mymsg;
-    ROS_INFO("Seq: %d", myOdom.header.seq);
-    ROS_INFO("/odom Pos (x:%f, y:%f, z:%f)", myOdom.pose.pose.position.x,myOdom.pose.pose.position.y, myOdom.pose.pose.position.z);
-
-    myPose.x = myOdom.pose.pose.position.x;
-    myPose.y = myOdom.pose.pose.position.y;
-    tf::Quaternion q(myOdom.pose.pose.orientation.x, myOdom.pose.pose.orientation.y, myOdom.pose.pose.orientation.z, myOdom.pose.pose.orientation.w);
-    tf::Matrix3x3 m(q);
-    double roll, pitch, yaw;
-    m.getRPY(roll, pitch, yaw);
-    myPose.theta = yaw;
-
-    ROS_INFO("/odom myPose (roll:%f, pitch:%f, yaw:%f) ", roll, pitch, yaw);
-    ROS_INFO("myVel (Linear:%f, Angular:%f)", myOdom.twist.twist.linear.x,myOdom.twist.twist.angular.z);
-
-    //敵との距離を計算する
-    double angle_, len_; //目標への移動距離と角度
-    //len_ = fabs(sqrt((myPose.x - enemyPose.x)*(myPose.x - enemyPose.x)
-    len_ = fabs(sqrt((myPose.x + enemyPose.x)*(myPose.x + enemyPose.x)
-                   + (myPose.y - enemyPose.y)*(myPose.y - enemyPose.y)));
-    //angle_  = atan2((myPose.y - enemyPose.y), (myPose.x - enemyPose.x));
-    angle_  = atan2((myPose.y - enemyPose.y), (myPose.x + enemyPose.x));
-
-
-     ROS_INFO("### distance form enemy :%f", len_);
-     ROS_INFO("### angle with enemy :%f", angle_);
-}
-
-// /敵のodomトピックから敵の位置と姿勢、速度を表示
-void DrivingControl::enemyOdomCallBack(const nav_msgs::Odometry::ConstPtr& _odom) {
-    enemyOdom = *_odom;
-    ROS_INFO("/enemy_bot/Seq: %d", enemyOdom.header.seq);
-    ROS_INFO("/enemy_bot/odom Pos (x:%f, y:%f, z:%f)", enemyOdom.pose.pose.position.x,enemyOdom.pose.pose.position.y, enemyOdom.pose.pose.position.z);
-    enemyPose.x = enemyOdom.pose.pose.position.x;
-    enemyPose.y = enemyOdom.pose.pose.position.y;
-    tf::Quaternion q(enemyOdom.pose.pose.orientation.x, enemyOdom.pose.pose.orientation.y, enemyOdom.pose.pose.orientation.z, enemyOdom.pose.pose.orientation.w);
-    tf::Matrix3x3 m(q);
-    double roll, pitch, yaw;
-    m.getRPY(roll, pitch, yaw);
-    enemyPose.theta = yaw;
-
-    ROS_INFO("/enemy_bot/odom enemyPose (roll:%f, pitch:%f, yaw:%f) ", roll, pitch, yaw);
-    ROS_INFO("/enemy_bot/Vel (Linear:%f, Angular:%f)", enemyOdom.twist.twist.linear.x,enemyOdom.twist.twist.angular.z);
-}
-
-/*
-// Called once when the goal completes
-//void doneCb(const actionlib::SimpleClientGoalState& state)
-void doneCb()
-{
-    ROS_INFO("Got Result");
-  //ROS_INFO("Finished in state [%s]", state.toString().c_str());
-  //ROS_INFO("Answer: %i", result->sequence.back());
-  //ros::shutdown();
-}
-
-// Called once when the goal becomes active
-void activeCb()
-{
-  ROS_INFO("Goal just went active");
-}
-
-// Called every time feedback is received for the goal
-void feedbackCb(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback)
-//void feedbackCb()
-{
-    move_base_msgs::MoveBaseFeedback _feedback;
-    _feedback = *feedback;
-    //ROS_INFO("Got Feedback");
-    //ROS_INFO("Got Feedback x= :%f",feedback.status);
-    //ROS_INFO("Got Feedback x= :%f",feedback.base_position.pose.position.x);
-    //ROS_INFO("Got Feedback y= :%f",feedback.feedback.base_position.pose.position.x);
-    //ROS_INFO("Got Feedback x= :%f",*feedback->base_position->pose->position->x);
-    //ROS_INFO("Got Feedback y= :%f",feedback->base_position->pose->position->x);
-    ros::spinOnce(); 
-    //rate.sleep();
-    std::string actionMode;
-    if(ros::param::get("/actionMode",actionMode)){
-
-        if(actionMode.compare("aimEnemy")==0){
-            //ac.cancelGoal();
-            //goalCancelFlg=true;
-        }
-    }
-}
-*/
-
-
 int main(int argc, char** argv){
   //std::filesystem::path path = std:filesystem::current_path();
   std::string path = ros::package::getPath("generate_waypoints");
 
-  //WaypointPose way_point[] = {{-0.996, 1.496, 0.898,0.440},{-0.429, 2.208, 0.027,1.000},{-1.516, 2.128, -0.719,0.695},{0.028, 0.017, -0.715,0.699}};
+  //MyPose way_point[] = {{-0.996, 1.496, 0.898,0.440},{-0.429, 2.208, 0.027,1.000},{-1.516, 2.128, -0.719,0.695},{0.028, 0.017, -0.715,0.699}};
 
   ros::Publisher  pub_goalWaypointPose;
 
@@ -338,7 +181,7 @@ int main(int argc, char** argv){
 
 	// Create new drivingControl object
 	DrivingControl drivingControl;
-	//drivingControl.startMoving();
+	//Patrol_cource patrol_cource;
 
   // チェックポイントをway_point[]に入力していく
   std::string line="";
@@ -358,7 +201,7 @@ int main(int argc, char** argv){
   }
 
   //create wayPoints array
-  WaypointPose waypointsForPatrol[50];
+  MyPose waypointsForPatrol[50];
 
   getline(ifsForPatrol, line); //read&discard header line
   int waypointIndexPatrol=0;
@@ -397,7 +240,7 @@ int main(int argc, char** argv){
   }
 
   //create wayPoints array
-  WaypointPose waypointsToEmptyCan[50];
+  MyPose waypointsToEmptyCan[50];
 
   // チェックポイントをway_point[]に入力していく
   //float px=0.0, py=0.0, pz=0.0, ox=0.0, oy=0.0, oz=0.0, ow=0.0;
@@ -437,7 +280,7 @@ int main(int argc, char** argv){
   }
 
   //create wayPoints array
-  WaypointPose waypointsToGarbageBox[50];
+  MyPose waypointsToGarbageBox[50];
 
 
   // チェックポイントをway_point[]に入力していく
@@ -479,7 +322,7 @@ int main(int argc, char** argv){
   }
 
   //create wayPoints array
-  WaypointPose waypointsToDockStation[50];
+  MyPose waypointsToDockStation[50];
 
   // チェックポイントをway_point[]に入力していく
   //std::string line="";
@@ -532,7 +375,6 @@ int main(int argc, char** argv){
   //======== Driving Control for Patrol ==============
   std::string actionMode;
   std::string patrolSubMode;
-  std::string actionDuration;
   std::string patrolResult;
 	geometry_msgs::Pose goalWaypointPose;
 
@@ -582,17 +424,11 @@ int main(int argc, char** argv){
   ros::param::set("patrolSubMode","movingToGoal");
 
   while (ros::ok()) {
-      //ros::spinOnce(); 
-      //rate.sleep();
-
       if(ros::param::get("/actionMode",actionMode)){
 
           if(actionMode.compare("patrol")==0){
               if(goalCancelFlg) goalCancelFlg=false;
 		ros::param::get("/patrolSubMode",patrolSubMode);
-
-              //goal.task_id = 1; 
-
               // ROSではロボットの進行方向がx座標、左方向がy座標、上方向がz座標
               goal.target_pose.pose.position.x =  waypointsForPatrol[waypointIndexPatrol].px;
               goal.target_pose.pose.position.y =  waypointsForPatrol[waypointIndexPatrol].py;
@@ -602,8 +438,6 @@ int main(int argc, char** argv){
 	      goalWaypointPose=goal.target_pose.pose;
 
               ROS_INFO("Sending goal: No.%d", waypointIndexPatrol);
-		//リカバリ走行と情報共有するため
-	      ros::param::set("patrolWaypointIndex",waypointIndexPatrol);
 
 //2021 for roboticsHubChanllenge
               // サーバーにgoalを送信
@@ -624,8 +458,6 @@ int main(int argc, char** argv){
 			  waypointIndexPatrol++;
               		  // サーバーにgoalを送信し、次のwaypointへ走行させる
               		  ac.sendGoal(goal);
-              		  //ac.sendGoal(goal, &feedbackCb);
-                          //ac.sendGoal(goal, &doneCb, &activeCb, &feedbackCb);
 		}else if(waypointIndexPatrol==1){
 		  //１つ目のWaypointに到着
 			if(patrolSubMode.compare("preAdjustment")==0){
@@ -668,7 +500,6 @@ int main(int argc, char** argv){
 			  waypointIndexPatrol++;
               		  // サーバーにgoalを送信し、次のwaypointへ走行させる
               		  ac.sendGoal(goal);
-              		  //ac.sendGoal(goal, &feedbackCb);
 		}else if(waypointIndexPatrol==2){
 			//２つ目のWaypointに到着
 			if(patrolSubMode.compare("preAdjustment")==0){
@@ -872,8 +703,8 @@ int main(int argc, char** argv){
 
 			  //最後のwaypointでは、点数を取得したあとに、試合終了まで、そのまま待機する
 			  //ros::param::set("actionMode","standBy");
-			  //waypointIndexを初期化
-			  waypointIndexPatrol=0;
+			  // waypointIndexを初期化
+			  //waypointIndexPatrol=0;
               		  // サーバーにgoalを送信しない
               		  //ac.sendGoal(goal);
 		}else {
@@ -883,20 +714,7 @@ int main(int argc, char** argv){
               	// 結果が返ってくるまで30.0[s] 待つ。ここでブロックされる。
               	//bool succeeded = ac.waitForResult(ros::Duration(120.0));
               	//ac.waitForResult(ros::Duration(30.0));
-		
-		double actionTime=2.0;
-		//double actionTime=30.0;
-      		if(ros::param::get("/actionDuration",actionDuration)){
-          		if(actionDuration.compare("longTime")==0){
-			  //actionDuartion: longTime
-			  actionTime=6.0;
-			}
-          		if(actionDuration.compare("longlongTime")==0){
-			  //actionDuartion: longlongTime
-			  actionTime=10.0;
-			}
-		}
-              	ac.waitForResult(ros::Duration(actionTime));
+              	ac.waitForResult(ros::Duration(20.0));
 
               	// 結果を見て、成功ならSucceeded、失敗ならFailedと表示
               	actionlib::SimpleClientGoalState state = ac.getState();
@@ -906,11 +724,12 @@ int main(int argc, char** argv){
 	       		ROS_INFO("Succeeded: waypointIndexPatrol No.%d (%s)",goalWayPointIndex, state.toString().c_str());
 			goalWayPointIndex=waypointIndexPatrol;
                		ROS_INFO("nextWayPointIndex: No.%d",goalWayPointIndex);
-			//ros::param::set("patrolWaypointIndex",waypointIndexPatrol);
 			 //サブ走行モード設定：patrolSubMode
 			   ros::param::set("patrolSubMode","preAdjustment");
 
 		}else {
+			pub_goalWaypointPose.publish(goalWaypointPose);
+
                 	ROS_INFO("Failed: waypointIndexPatrol No.%d (%s)",(waypointIndexPatrol-1), state.toString().c_str());
 			//サブ走行モード設定(patrolSubMode)を変更しない：movingToGoalのまま
 			//ros::param::set("patrolSubMode","movingToGoal");
@@ -920,40 +739,33 @@ int main(int argc, char** argv){
 			goalWayPointIndex=waypointIndexPatrol;
                		//ROS_INFO("nextWayPointIndex: No.%d",goalWayPointIndex);
 
-			//リカバリ走行と情報共有するため
-			ros::param::set("patrolWaypointIndex",waypointIndexPatrol);
-			pub_goalWaypointPose.publish(goalWaypointPose);
-
 			//アクション失敗時に、リカバリ走行させる
-			ros::param::set("originalActionMode","patrol");
-			ros::param::set("actionMode","naviRecovery");
+			//ros::param::set("originalActionMode","patrol");
+			//ros::param::set("actionMode","naviRecovery");
             	}
 	  } else{
              //abort
-             // if(!goalCancelFlg){
-             ac.cancelGoal();
-             //   goalCancelFlg=true;
-  	     //   waypointIndexPatrol--;
-             // }
+              if(!goalCancelFlg){
+                ac.cancelGoal();
+                goalCancelFlg=true;
+  	        //waypointIndexPatrol--;
+              }
           }
 
-          if(actionMode.compare("aimEnemy")==0){
+          if(actionMode.compare("moveBackHeadquarter")==0){
 
 	  }
 
-          if(actionMode.compare("naviRecovery")==0){
+          if(actionMode.compare("moveToEnemyHeadquarter")==0){
 
 	  }
-          if(actionMode.compare("moveToRightSide")==0){
 
-	  }
-          if(actionMode.compare("moveToLeftSide")==0){
-
-	  }
           if(actionMode.compare("moveToEnemyRightSide")==0){
 
 	  }
+
           if(actionMode.compare("moveToEnemyLeftSide")==0){
+
 	  }
 
 

@@ -132,6 +132,12 @@ if __name__ == '__main__':
     # velocity publisher
     vel_pub = rospy.Publisher('cmd_vel', Twist,queue_size=1)
 
+    count = 0
+    count_th1=2
+    count_th2=1
+    mask_sum = 0
+#    judge_th = 1000000
+    judge_th = 10000
 
     r = rospy.Rate(5)
     while not rospy.is_shutdown():
@@ -142,17 +148,19 @@ if __name__ == '__main__':
         hsv_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2HSV)
 
         # 画像の二値化のための範囲指定。HSVで。
-        lower = np.array([-30, 100, 50]) # red
-        upper = np.array([30, 255, 255]) # red
+#       lower = np.array([-30, 100, 50]) # red
+#       upper = np.array([30, 255, 255]) # red
 #        lower = np.array([30, 100, 50]) # yellow
 #        upper = np.array([50, 255, 255]) # yellow
-#        lower = np.array([120, 100, 50]) # blue
-#        upper = np.array([140, 255, 255]) # blue
-#        lower = np.array([40, 100, 50]) # green
-#        upper = np.array([60, 255, 255]) # green
+       lower = np.array([120, 100, 50]) # blue
+       upper = np.array([140, 255, 255]) # blue
+#       lower = np.array([40, 100, 50]) # green
+#       upper = np.array([60, 255, 255]) # green
 
         # 値が指定した範囲内の画素は255、範囲外の画素を0にする二値化
         mask_image = cv2.inRange(hsv_image, lower, upper)
+	mask_sum = mask_image.sum()
+        print("合計値：　%d" % mask_sum)
 
         # 先程二値化した画像をマスク画像としてBGR画像を切り抜き
         processed_image = cv2.bitwise_and(bgr_image, bgr_image, mask=mask_image)
@@ -187,11 +195,46 @@ if __name__ == '__main__':
             
         print(anglular_z)
 
-	#2/27 shen
-	actionMode = rospy.get_param("actionMode")
-	print("actionMode = %s" %(actionMode))
-	if(actionMode=="aimEnemy"):
+        actionMode = rospy.get_param("actionMode")
+        print("actionMode = %s" %(actionMode))
+
+        #3/2 shen
+        if cx != 0:
+        #if mask_sum > judge_th:
+            count+=1
+        else:
+            if actionMode == "aimEnemy":
+                count-=1
+            else:
+                count=0
+
+        if count > count_th1:
+            #敵を発見した場合
+            count = count_th1
+            if actionMode != "aimEnemy":
+                rospy.set_param('actionMode','aimEnemy')
+        else:
+      	    if actionMode == "aimEnemy":
+                #敵を見失った場合
+                if count < count_th2:
+                    rospy.set_param('actionMode','patrol')
+            #else:
+                #敵が見当たらない場合
+                #２つ以上の動作モードの可能性もあるため、モード設定を変更しないほうがよい
+                #if(actionMode!="patrol"):
+                #    rospy.set_param('actionMode','patrol')
+
+        r.sleep()
+        #2/27 shen
+        actionMode = rospy.get_param("actionMode")
+        print("actionMode = %s" %(actionMode))
+
+        #敵への追従性を向上するために、常にトピックをPubする
+        if actionMode== "aimEnemy":
+        #ROSparam設定してから反映されるまでに時間かかるため、敵への追従をよくするためにmask_sumを使って判定する
+        #if mask_sum > judge_th:
             twist = Twist()
+            #twist.linear.x = 0.2; twist.linear.y = 0; twist.linear.z = 0
             twist.linear.x = 0; twist.linear.y = 0; twist.linear.z = 0
             twist.angular.x = 0; twist.angular.y = 0; twist.angular.z = anglular_z
             vel_pub.publish(twist)

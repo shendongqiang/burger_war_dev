@@ -48,9 +48,9 @@ class ScanStopper {
 	double FRONT_MAX_SCAN_ANGLE_RAD = +15.0/180*3.14;
 
 	// Should be smaller than sensor_msgs::LaserScan::range_max
-	double  BAN_PROXIMITY_RANGE_M = 0.07;  //0.15->0.30->0.25 =>Turtlebot3 0.07
-	double  MIN_PROXIMITY_RANGE_M = 0.09;  //0.25->0.35->0.30 =>Turtlebot3 0.09
-	double  BACK_NAVIGATION_RANGE = 0.1;  //0.35->0.40->0.40 =>Turtlebot3 0.09
+	float  BAN_PROXIMITY_RANGE_M = 0.07;  //0.15->0.30->0.25 =>Turtlebot3 0.07
+	float  MIN_PROXIMITY_RANGE_M = 0.09;  //0.25->0.35->0.30 =>Turtlebot3 0.09
+	float  BACK_NAVIGATION_RANGE = 0.09;  //0.35->0.40->0.40 =>Turtlebot3 0.09
 
 	geometry_msgs::Pose goalWaypointPose;
 
@@ -301,7 +301,7 @@ void ScanStopper::myOdomCallBack(const nav_msgs::Odometry::ConstPtr& mymsg) {
     //敵との距離を計算する
     double angle_, len_; //目標への移動距離と角度
     //len_ = fabs(sqrt((myPose.x +2.4 - enemyPose.x)*(myPose.x +2.4 - enemyPose.x)
-    len_ = fabs(sqrt((myPose.x - (2.4 + enemyPose.x))*(myPose.x - (2.4 + enemyPose.x))
+    len_ = fabs(sqrt((myPose.x + 2.4 + enemyPose.x)*(myPose.x + 2.4 + enemyPose.x)
                    + (myPose.y - enemyPose.y)*(myPose.y - enemyPose.y)));
     //angle_  = atan2((myPose.y - enemyPose.y), (myPose.x - enemyPose.x));
     angle_  = atan2((myPose.y - enemyPose.y), (myPose.x + enemyPose.x));
@@ -311,21 +311,13 @@ void ScanStopper::myOdomCallBack(const nav_msgs::Odometry::ConstPtr& mymsg) {
      ROS_INFO("### angle with enemy :%f", angle_);
 
 
-    if(len_<=1.2){
-        ros::param::set("/actionDuration","shortTime");
+    if(len_<=0.8){
         ros::param::set("originalActionMode","naviRecovery");
         ros::param::set("/actionMode","aimEnemy");
     }else {
-        if(len_> 1.5){
-            ros::param::set("/actionDuration","longTime");
-        }
-        if(len_> 2.0){
-            ros::param::set("/actionDuration","longlongTime");
-        }
-
 	if(ros::param::get("/actionMode",actionMode)){
           if(actionMode.compare("aimEnemy")==0){
-            if(len_> 1.5){
+            if(len_> 1.2){
               ros::param::set("/actionMode","patrol");
             }
           }
@@ -456,7 +448,6 @@ void ScanStopper::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
 	std::string actionMode;
 	std::string recoveryMode;
 	std::string odomMode;
-        double frontAngle;
 
 	// Find the closest range between the defined minimum and maximum angles
         //
@@ -467,30 +458,23 @@ void ScanStopper::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
         //range_min: 0.119999997318
         //range_max: 3.5
 
-    //ROS_INFO("###+++### scan info ###+++###");
-    //ROS_INFO("range_min :%f) ", scan->range_min);
-    //ROS_INFO("range_max :%f) ", scan->range_max);
-    //ROS_INFO("angle_min :%f) ", scan->angle_min);
-    //ROS_INFO("angle_max :%f) ", scan->angle_max);
+    ROS_INFO("###+++### scan info ###+++###");
+        ROS_INFO("range_min :%f) ", scan->range_min);
+        ROS_INFO("range_max :%f) ", scan->range_max);
+        ROS_INFO("angle_min :%f) ", scan->angle_min);
+        ROS_INFO("angle_max :%f) ", scan->angle_max);
 
   int i = scan->ranges.size() / 2;
   if (scan->ranges[i] < scan->range_min || // エラー値の場合
       scan->ranges[i] > scan->range_max || // 測定範囲外の場合
       std::isnan(scan->ranges[i])) // 無限遠の場合
   {
-    //ROS_INFO("front-range: measurement error");
+    ROS_INFO("front-range: measurement error");
   }
   else
   {
     ROS_INFO("###+++### front-range: %0.3f",
       scan->ranges[scan->ranges.size() / 2]);
-
-    frontAngle = (scan->angle_max - scan->angle_min) / 2;
-    //ROS_INFO("###+++### frontAngle: %0.3f", frontAngle);
-
-    int frontIndex;
-    frontIndex = ceil(frontAngle / scan->angle_increment);
-    //ROS_INFO("###+++### front-index: %i", frontIndex);
   }
 
 
@@ -507,12 +491,8 @@ void ScanStopper::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
 	modeString.data="normal";
 	mode_pub.publish(modeString);
 
-	int minIndex =  ceil(scan->angle_min / scan->angle_increment);
-	int maxIndex = floor(scan->angle_max / scan->angle_increment);
-	//int minIndex =  ceil((frontAngle + RECOVERY_MIN_SCAN_ANGLE_RAD) / scan->angle_increment);
-	//int maxIndex = floor((frontAngle + RECOVERY_MAX_SCAN_ANGLE_RAD) / scan->angle_increment);
-	//int minIndex =  ceil((RECOVERY_MIN_SCAN_ANGLE_RAD - scan->angle_min) / scan->angle_increment);
-	//int maxIndex = floor((RECOVERY_MAX_SCAN_ANGLE_RAD - scan->angle_min) / scan->angle_increment);
+	int minIndex =  ceil((RECOVERY_MIN_SCAN_ANGLE_RAD - scan->angle_min) / scan->angle_increment);
+	int maxIndex = floor((RECOVERY_MAX_SCAN_ANGLE_RAD - scan->angle_min) / scan->angle_increment);
 	int middleIndex = minIndex+floor((maxIndex - minIndex) / 2);
 	int direcIndicator = 0;
 
@@ -529,13 +509,12 @@ void ScanStopper::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
 			closestIndex = currIndex;
 		}
 	}
-	//direcIndicator=closestIndex-middleIndex;
-	direcIndicator=middleIndex - closestIndex;
+	direcIndicator=closestIndex-middleIndex;
 
-	int minIndex_allDirections =  ceil((frontAngle + MIN_SCAN_ANGLE_RAD) / scan->angle_increment);
-	int maxIndex_allDirections = floor((frontAngle + MAX_SCAN_ANGLE_RAD) / scan->angle_increment);
-	//int minIndex_allDirections =  ceil((MIN_SCAN_ANGLE_RAD - scan->angle_min) / scan->angle_increment);
-	//int maxIndex_allDirections = floor((MAX_SCAN_ANGLE_RAD - scan->angle_min) / scan->angle_increment);
+
+
+	int minIndex_allDirections =  ceil((MIN_SCAN_ANGLE_RAD - scan->angle_min) / scan->angle_increment);
+	int maxIndex_allDirections = floor((MAX_SCAN_ANGLE_RAD - scan->angle_min) / scan->angle_increment);
 	double closestRange_allDirections = scan->ranges[minIndex_allDirections];
 	int closestIndex_allDirections = minIndex_allDirections;
 	for (int currIndex = minIndex_allDirections + 1; currIndex <= maxIndex_allDirections; currIndex++) {
@@ -545,17 +524,11 @@ void ScanStopper::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
 		}
 	}
 
-	int minIndex_frontDirections =  ceil((frontAngle + FRONT_MIN_SCAN_ANGLE_RAD) / scan->angle_increment);
-	int maxIndex_frontDirections = floor((frontAngle + FRONT_MAX_SCAN_ANGLE_RAD) / scan->angle_increment);
-	//int minIndex_frontDirections =  ceil((FRONT_MIN_SCAN_ANGLE_RAD - scan->angle_min) / scan->angle_increment);
-	//int maxIndex_frontDirections = floor((FRONT_MAX_SCAN_ANGLE_RAD - scan->angle_min) / scan->angle_increment);
+	int minIndex_frontDirections =  ceil((FRONT_MIN_SCAN_ANGLE_RAD - scan->angle_min) / scan->angle_increment);
+	int maxIndex_frontDirections = floor((FRONT_MAX_SCAN_ANGLE_RAD - scan->angle_min) / scan->angle_increment);
 	double closestRange_frontDirections = scan->ranges[minIndex_frontDirections];
 	int closestIndex_frontDirections = minIndex_frontDirections;
 	for (int currIndex = minIndex_frontDirections + 1; currIndex <= maxIndex_frontDirections; currIndex++) {
-
-		ROS_INFO_STREAM("---Closest range_frontDirections---: " << closestRange_frontDirections);
-		ROS_INFO_STREAM("+++Closest Index_frontDirections+++: " << closestIndex_frontDirections);
-
 		if (scan->ranges[currIndex] < closestRange_frontDirections) {
 			closestRange_frontDirections = scan->ranges[currIndex];
 			closestIndex_frontDirections = currIndex;
@@ -569,8 +542,7 @@ void ScanStopper::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
 	ROS_INFO_STREAM("Closest range: " << closestRange);
 	ROS_INFO_STREAM("Closest index: " << closestIndex);
 	ROS_INFO_STREAM("turn direction: " << direcIndicator);
-	//ROS_INFO_STREAM("Closest range_frontDirections: " << closestRange_frontDirections);
-	ROS_INFO_STREAM("Closest range_recovery: " << closestRange);
+	ROS_INFO_STREAM("Closest range_frontDirections: " << closestRange_frontDirections);
 	//ROS_INFO_STREAM("Closest range_allDirections: " << closestRange_allDirections);
 
 	if (closestRange_frontDirections < BAN_PROXIMITY_RANGE_M) {
@@ -590,7 +562,7 @@ void ScanStopper::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
 			ROS_INFO("Obstacle discovery! turn 90 deg to escape from the corner!");
 			ros::Rate rate(1);
 			//for(int i=1;i<16;i++){
-			for(int i=1;i<6;i++){
+			for(int i=1;i<8;i++){
 				turnAround(direcIndicator);
 				rate.sleep();
 			}
@@ -640,7 +612,7 @@ void ScanStopper::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
 			if(recoveryCounter>4){
 				ROS_INFO("Obstacle discovery! turn 370 deg to clear the cost map!");
 				//for(int k=1;k<61;k++){
-				for(int k=1;k<24;k++){
+				for(int k=1;k<31;k++){
 					turnAround(direcIndicator);
 					rate.sleep();
 				}
@@ -751,8 +723,7 @@ int main(int argc, char **argv)
 {
 	// Initiate new ROS node named "stopper"
 	//ros::init(argc, argv, "stopper");
-	//ros::init(argc, argv, "rulo_laserAutoDrive");
-	ros::init(argc, argv, "navi_recovery");
+	ros::init(argc, argv, "rulo_laserAutoDrive");
 
 	// Create new stopper object
 	ScanStopper stopper;
