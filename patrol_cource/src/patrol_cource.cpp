@@ -884,8 +884,9 @@ int main(int argc, char** argv){
               	//bool succeeded = ac.waitForResult(ros::Duration(120.0));
               	//ac.waitForResult(ros::Duration(30.0));
 		
-		double actionTime=2.0;
-		//double actionTime=30.0;
+		//double actionTime=2.0;
+		double actionTime=30.0;
+/*
       		if(ros::param::get("/actionDuration",actionDuration)){
           		if(actionDuration.compare("longTime")==0){
 			  //actionDuartion: longTime
@@ -896,6 +897,7 @@ int main(int argc, char** argv){
 			  actionTime=10.0;
 			}
 		}
+*/
               	ac.waitForResult(ros::Duration(actionTime));
 
               	// 結果を見て、成功ならSucceeded、失敗ならFailedと表示
