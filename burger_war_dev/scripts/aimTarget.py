@@ -152,10 +152,10 @@ if __name__ == '__main__':
 #       upper = np.array([30, 255, 255]) # red
 #        lower = np.array([30, 100, 50]) # yellow
 #        upper = np.array([50, 255, 255]) # yellow
-       lower = np.array([120, 100, 50]) # blue
-       upper = np.array([140, 255, 255]) # blue
-#       lower = np.array([40, 100, 50]) # green
-#       upper = np.array([60, 255, 255]) # green
+#      lower = np.array([120, 100, 50]) # blue
+#      upper = np.array([140, 255, 255]) # blue
+       lower = np.array([40, 100, 50]) # green
+       upper = np.array([60, 255, 255]) # green
 
         # 値が指定した範囲内の画素は255、範囲外の画素を0にする二値化
         mask_image = cv2.inRange(hsv_image, lower, upper)
