@@ -71,7 +71,7 @@ class AllSensorBot(object):
         '''
         calc Twist and publish cmd_vel topic
         '''
-        r = rospy.Rate(1)
+        r = rospy.Rate(5)
 
         while not rospy.is_shutdown():
             # update twist
@@ -138,7 +138,7 @@ if __name__ == '__main__':
     enemyTargetDir_pub = rospy.Publisher('enemyTarget_direction', String,queue_size=1)
 
     count = 0
-    count_th1=1
+    count_th1=2
     count_th2=1
     mask_sum = 0
 #    judge_th = 1000000
@@ -194,9 +194,9 @@ if __name__ == '__main__':
         diff_pix = cx - 320
         anglular_z = 0
 
-        if abs(diff_pix) < 320 and diff_pix > 20:
+        if abs(diff_pix) < 320 and diff_pix > 10:
             anglular_z = -0.3
-        elif abs(diff_pix) < 320 and diff_pix < -20:
+        elif abs(diff_pix) < 320 and diff_pix < -10:
             anglular_z = 0.3
         else:
             anglular_z = 0.0
@@ -229,9 +229,11 @@ if __name__ == '__main__':
             else:
                 count=0
 
-        if count > count_th1:
+        #if count > count_th1:
+        if count >= 1:
             #敵を発見した場合
-            count = count_th1
+            if count >= count_th1:
+                count = count_th1
 
             #敵のいる方向を判別する：前方方向
             enemyTargetDirection = "front"
@@ -281,8 +283,6 @@ if __name__ == '__main__':
         #敵のいる方向をパブリッシュする
         enemyTargetDir_pub.publish(enemyTargetDirection)
 
-
-        r.sleep()
         #2/27 shen
         actionMode = rospy.get_param("actionMode")
         print("actionMode = %s" %(actionMode))

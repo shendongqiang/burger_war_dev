@@ -50,6 +50,9 @@ class ScanStopper {
 	double FRONT_MIN_SCAN_ANGLE_RAD = -15.0/180*3.14;
 	double FRONT_MAX_SCAN_ANGLE_RAD = +15.0/180*3.14;
 
+	double ENEMY_FRONT_MIN_SCAN_ANGLE_RAD = -5.0/180*3.14;
+	double ENEMY_FRONT_MAX_SCAN_ANGLE_RAD = +5.0/180*3.14;
+
 	// Should be smaller than sensor_msgs::LaserScan::range_max
 	double  BAN_PROXIMITY_RANGE_M = 0.07;  //0.15->0.30->0.25 =>Turtlebot3 0.07
 	double  MIN_PROXIMITY_RANGE_M = 0.09;  //0.25->0.35->0.30 =>Turtlebot3 0.09
@@ -117,6 +120,8 @@ class ScanStopper {
 	int grobalCount=0;
 	bool arrayCheckFlg=false;
 	geometry_msgs::Twist grobalvel;
+	int globalSearchEnemyFoundCount=0;
+	int globalAimEnemyTargetFoundCount=0;
 };
 
 ScanStopper::ScanStopper()
@@ -790,7 +795,7 @@ void ScanStopper::scanEnemyCallback(const sensor_msgs::LaserScan::ConstPtr& scan
 	newLaserScan = *scan;
 	diffLaserScan = *scan;
 
-
+/*
   int i = scan->ranges.size() / 2;
   if (scan->ranges[i] < scan->range_min || // エラー値の場合
       scan->ranges[i] > scan->range_max || // 測定範囲外の場合
@@ -819,6 +824,34 @@ void ScanStopper::scanEnemyCallback(const sensor_msgs::LaserScan::ConstPtr& scan
 
 
     enemyDistance= frontAngle;
+*/
+
+	rangeSum = 0.0;
+	indexNum = 0;
+	enemyDistance = 0.0;
+	aveRange=0.0;
+
+	frontAngle = (scan->angle_max - scan->angle_min) / 2;
+	int frontIndex;
+	frontIndex = ceil(frontAngle / scan->angle_increment);
+	int minIndex_frontDirections =  ceil((frontAngle + ENEMY_FRONT_MIN_SCAN_ANGLE_RAD) / scan->angle_increment);
+	int maxIndex_frontDirections = floor((frontAngle + ENEMY_FRONT_MAX_SCAN_ANGLE_RAD) / scan->angle_increment);
+
+
+	//前方+/-5度のscanデータから、移動物体への平均距離を計算する
+	for (int currIndex = minIndex_frontDirections; currIndex <= maxIndex_frontDirections; currIndex++) {
+		rangeSum += scan->ranges[currIndex];
+       		indexNum++;
+	}
+	if(indexNum==0){
+		indexNum = 1;
+	}
+	aveRange = rangeSum/indexNum;
+
+        //検出移動物体からの平均距離
+	enemyDistance = aveRange;
+     	ROS_INFO("### distance to the obstacle ahead :%f", enemyDistance);
+
 
        	if(enemyDistance> 2.0){
             	ros::param::set("/actionDuration","longTime");
@@ -831,8 +864,12 @@ void ScanStopper::scanEnemyCallback(const sensor_msgs::LaserScan::ConstPtr& scan
     if(ros::param::get("/actionMode",actionMode)){
 	if(actionMode.compare("searchEnemy")==0){
 
+ROS_INFO("### searchEnemy check(1)----------");
+
       		if(ros::param::get("/searchEnemyResult",searchEnemyResult)){
           		if(searchEnemyResult.compare("fail")==0){
+				globalSearchEnemyFoundCount=0;
+ROS_INFO("### searchEnemy check(2)----------");
 
 		        	if(enemyDistance< 0.25){
 
@@ -843,14 +880,21 @@ void ScanStopper::scanEnemyCallback(const sensor_msgs::LaserScan::ConstPtr& scan
 				}
 
 			}else if(searchEnemyResult.compare("found")==0){
-		        	if(enemyDistance> 0.4){
-                	                ROS_INFO("!!!***!!! follow from enemy)");
-					ScanStopper::setVel(0.2,0.0);
-					rate.sleep();
-
-				}else{
-
+				globalSearchEnemyFoundCount++;
+				if(globalSearchEnemyFoundCount>=5){
+					ROS_INFO("!!!***!!! change to aimEnemyTarget mode");
+					ros::param::set("actionMode","aimEnemyTarget");
 				}
+ROS_INFO("### searchEnemy check(3)----------");
+
+		        	//if(enemyDistance> 0.4){
+                	        //        ROS_INFO("!!!***!!! follow from enemy)");
+					//ScanStopper::setVel(0.2,0.0);
+					//rate.sleep();
+
+				//	ROS_INFO("### searchEnemy check(4)----------");
+				//}else{
+				//}
 
 
 			}
@@ -859,10 +903,12 @@ void ScanStopper::scanEnemyCallback(const sensor_msgs::LaserScan::ConstPtr& scan
 
 	if(actionMode.compare("aimEnemyTarget")==0){
 
+ROS_INFO("### aimEnemyTarget check(1)----------");
 
       		if(ros::param::get("/aimEnemyTargetResult",aimEnemyTargetResult)){
           		if(aimEnemyTargetResult.compare("fail")==0){
-
+				globalAimEnemyTargetFoundCount=0;
+ROS_INFO("### aimEnemyTarget check(2)----------");
 		        	if(enemyDistance< 0.15){
 
 
@@ -872,13 +918,23 @@ void ScanStopper::scanEnemyCallback(const sensor_msgs::LaserScan::ConstPtr& scan
 				}
 
 			}else if(aimEnemyTargetResult.compare("found")==0){
-		        	if(enemyDistance< 0.6){
+ROS_INFO("### aimEnemyTarget check(3)----------");
+
+				globalAimEnemyTargetFoundCount++;
+				if(globalAimEnemyTargetFoundCount>=3){
                	                	ROS_INFO("!!!***!!! change to searchEnemy mode");
 					ros::param::set("actionMode","searchEnemy");
-				}else{
 				}
+		        	//if(enemyDistance< 0.6){
+               	                //	ROS_INFO("!!!***!!! change to searchEnemy mode");
+				//	ros::param::set("actionMode","searchEnemy");
+				//	ROS_INFO("### aimEnemyTarget check(4)----------");
+				//}else{
+				//}
 
 			}else{
+ROS_INFO("### aimEnemyTarget check(5)----------");
+
 		        	if(enemyDistance> 1.2){
                 	                ROS_INFO("!!!***!!! back to patrol mode (1 searchEnemy)");
 					ros::param::set("actionMode","patrol");
