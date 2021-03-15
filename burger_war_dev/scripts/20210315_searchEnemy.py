@@ -27,7 +27,7 @@ from geometry_msgs.msg import Twist
 
 class AllSensorBot(object):
     def __init__(self, 
-                 use_lidar=False, use_camera=False, use_imu=False,
+                 use_lidar=False, use_camera=True, use_imu=False,
                  use_odom=False, use_joint_states=False):
 
         # velocity publisher
@@ -36,6 +36,8 @@ class AllSensorBot(object):
         # image publisher 追加した
         self.image_pub = rospy.Publisher('processed_image', Image, queue_size=10)
 
+        # enemy dircetion publisher
+        self.enemydir_pub = rospy.Publisher('enemy_direction', String,queue_size=1)
 
         # lidar scan subscriber
         if use_lidar:
@@ -74,7 +76,7 @@ class AllSensorBot(object):
         while not rospy.is_shutdown():
             # update twist
             twist = Twist()
-            twist.linear.x = 0.1; twist.linear.y = 0; twist.linear.z = 0
+            twist.linear.x = 0; twist.linear.y = 0; twist.linear.z = 0
             twist.angular.x = 0; twist.angular.y = 0; twist.angular.z = 0
 
             # publish twist topic
@@ -124,7 +126,7 @@ class AllSensorBot(object):
         rospy.loginfo("joint_state L: {}".format(self.wheel_rot_l))
 
 if __name__ == '__main__':
-    rospy.init_node('aimTarget')
+    rospy.init_node('searchEnemy')
     bot = AllSensorBot(use_lidar=False, use_camera=True, use_imu=False,
                        use_odom=False, use_joint_states=False)
 #    bot.strategy()
@@ -132,12 +134,18 @@ if __name__ == '__main__':
     # velocity publisher
     vel_pub = rospy.Publisher('cmd_vel', Twist,queue_size=1)
 
+    # enemy directory publisher
+    enemydir_pub = rospy.Publisher('enemy_direction', String,queue_size=1)
+
     count = 0
-    count_th1=2
+    count_th1=3
     count_th2=1
     mask_sum = 0
 #    judge_th = 1000000
     judge_th = 10000
+    enemyDirection = "notexist" #notexit,left,right,front
+    enemyDirectionCount = 0
+    searchEnemyResult = "searching" #fail,searching,found
 
     r = rospy.Rate(5)
     while not rospy.is_shutdown():
@@ -148,19 +156,19 @@ if __name__ == '__main__':
         hsv_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2HSV)
 
         # 画像の二値化のための範囲指定。HSVで。
-#       lower = np.array([-30, 100, 50]) # red
-#       upper = np.array([30, 255, 255]) # red
-#        lower = np.array([30, 100, 50]) # yellow
-#        upper = np.array([50, 255, 255]) # yellow
-#      lower = np.array([120, 100, 50]) # blue
-#      upper = np.array([140, 255, 255]) # blue
-       lower = np.array([40, 100, 50]) # green
-       upper = np.array([60, 255, 255]) # green
+        lower = np.array([-30, 100, 50]) # red
+        upper = np.array([30, 255, 255]) # red
+#       lower = np.array([30, 100, 50]) # yellow
+#       upper = np.array([50, 255, 255]) # yellow
+#       lower = np.array([120, 100, 50]) # blue
+#       upper = np.array([140, 255, 255]) # blue
+#       lower = np.array([40, 100, 50]) # green
+#       upper = np.array([60, 255, 255]) # green
 
         # 値が指定した範囲内の画素は255、範囲外の画素を0にする二値化
         mask_image = cv2.inRange(hsv_image, lower, upper)
 	mask_sum = mask_image.sum()
-        print("合計値：　%d" % mask_sum)
+        print("合計値： %d" % mask_sum)
 
         # 先程二値化した画像をマスク画像としてBGR画像を切り抜き
         processed_image = cv2.bitwise_and(bgr_image, bgr_image, mask=mask_image)
@@ -197,13 +205,27 @@ if __name__ == '__main__':
 
         actionMode = rospy.get_param("actionMode")
         print("actionMode = %s" %(actionMode))
+        searchEnemyResult = rospy.get_param("searchEnemyResult")
+        print("searchEnemyResult = %s" %searchEnemyResult)
+
+        #3/13 shen
+        #敵のいる方向を判別する
+        if cx > 0:
+            enemyDirection = "right"
+            enemyDirectionCount += 1
+        elif cx < 0:
+            enemyDirection = "left"
+            enemyDirectionCount -= 1
+        else :
+            enemyDirection = "notexist"
+
 
         #3/2 shen
-        if cx != 0:
         #if mask_sum > judge_th:
+        if cx != 0:
             count+=1
         else:
-            if actionMode == "aimEnemy":
+            if searchEnemyResult != "fail":
                 count-=1
             else:
                 count=0
@@ -211,18 +233,58 @@ if __name__ == '__main__':
         if count > count_th1:
             #敵を発見した場合
             count = count_th1
-            if actionMode != "aimEnemy":
-                rospy.set_param('actionMode','aimEnemy')
+
+            #敵のいる方向を判別する：前方方向
+            enemyDirection = "front"
+
+            #敵のサーチ結果をResultに設定する
+            if searchEnemyResult != "found":
+
+                rospy.set_param('searchEnemyResult','found')
+                #actionModeの遷移をpatrol_courceノードに任せる
+                #rospy.set_param('actionMode','aimEnemy')
+
+                '''
+                #敵が移動中のため、回転速度がなかなか０にならないため、コメントアウト
+
+                if (anglular_z == 0.0):
+                    rospy.set_param('searchEnemyResult','found')
+                    #actionModeの遷移をpatrol_courceノードに任せる
+                    #rospy.set_param('actionMode','aimEnemy')
+
+                    #敵のいる方向を判別する：前方方向
+                    enemyDirection = "front"
+
+                else:
+                    rospy.set_param('searchEnemyResult','searching')
+                '''
+
+        elif count <= 0:
+             count=0
+             rospy.set_param('searchEnemyResult','fail')
+             #actionModeの遷移をpatrol_courceノードに任せる
+             #rospy.set_param('actionMode','patrol')
+
         else:
-      	    if actionMode == "aimEnemy":
+            #敵のサーチ結果をResultに設定する
+      	    if searchEnemyResult == "found":
                 #敵を見失った場合
-                if count < count_th2:
-                    rospy.set_param('actionMode','patrol')
+                if count <= count_th2:
+                    rospy.set_param('searchEnemyResult','searching')
+                    #rospy.set_param('actionMode','patrol')
+
+            else:
+                rospy.set_param('aimEnemyTargetResult','searching')
+
             #else:
                 #敵が見当たらない場合
                 #２つ以上の動作モードの可能性もあるため、モード設定を変更しないほうがよい
                 #if(actionMode!="patrol"):
                 #    rospy.set_param('actionMode','patrol')
+
+        #敵のいる方向をパブリッシュする
+        enemydir_pub.publish(enemyDirection)
+        #enemydir_pub.publish("front")
 
         r.sleep()
         #2/27 shen
@@ -230,7 +292,7 @@ if __name__ == '__main__':
         print("actionMode = %s" %(actionMode))
 
         #敵への追従性を向上するために、常にトピックをPubする
-        if actionMode== "aimEnemy":
+        if actionMode== "searchEnemy":
         #ROSparam設定してから反映されるまでに時間かかるため、敵への追従をよくするためにmask_sumを使って判定する
         #if mask_sum > judge_th:
             twist = Twist()

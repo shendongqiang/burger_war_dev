@@ -562,9 +562,6 @@ int main(int argc, char** argv){
   bool goalCancelFlg=false;
   int direcIndicator = 0;
 
-  bool sendGoalFlgAtSearchEnemy=false;
-  bool sendGoalFlgAtAimEnemyTarget=false;
-
   ros::Rate rate(1);
 /*
 			  //少し前に出て、ターゲットを探しやすいように姿勢を調整する
@@ -642,13 +639,6 @@ int main(int argc, char** argv){
 
 			  // waypointIndexインクリメント
 			  waypointIndexPatrol++;
-
-			//アクション走行の合間に敵探しをこまめに実施する。
-			//sendGoalFlgAtAimEnemyTarget = false;
-			//ros::param::set("actionMode","aimEnemyTarget");
-			//	rate.sleep();
-			//	rate.sleep();
-
               		  // サーバーにgoalを送信し、次のwaypointへ走行させる
               		  ac.sendGoal(goal);
               		  //ac.sendGoal(goal, &feedbackCb);
@@ -665,12 +655,8 @@ int main(int argc, char** argv){
 			//★敵が右左方向にいるなら、waypointIndexPatrol+2へ走行し、SubModeをfight_enemyにする
 
 			//★敵がいないなら、waypointIndexPatrol+2へ走行し、SubModeをfight_enemyにする
-			//アクション走行の合間に敵探しをこまめに実施する。
-			sendGoalFlgAtAimEnemyTarget = false;
-			ros::param::set("actionMode","aimEnemyTarget");
-				rate.sleep();
-/*
-*/
+
+
 			if(patrolSubMode.compare("preAdjustment")==0){
 			 //事前処理
 			 //ターゲット捜索し、点数を取得する
@@ -688,14 +674,11 @@ int main(int argc, char** argv){
 				rate.sleep();
 			  }
 
+
 			//★右方向　敵探し
 			//★赤ランプで探す　
-			//アクション走行の合間に敵探しをこまめに実施する。
-			sendGoalFlgAtAimEnemyTarget = false;
-			ros::param::set("actionMode","aimEnemyTarget");
-				rate.sleep();
-/*
-*/
+
+
 			  //左へ回転し、左側のフィールドターゲットを探して点数を取得する
 			  for(int i=1;i<5;i++){
 				direcIndicator = -10;
@@ -704,14 +687,11 @@ int main(int argc, char** argv){
 				rate.sleep();
 			  }
 
+
 			//★左方向　敵探し
 			//★赤ランプで探す　
-			//アクション走行の合間に敵探しをこまめに実施する。
-			sendGoalFlgAtAimEnemyTarget = false;
-			ros::param::set("actionMode","aimEnemyTarget");
-				rate.sleep();
-/*
-*/
+
+
 			  //右へ回転し、２つ目のwaypointへ走行しやすいように姿勢を調整する
 			  for(int i=1;i<3;i++){
 				direcIndicator = 10;
@@ -731,19 +711,13 @@ int main(int argc, char** argv){
 
 			  // waypointIndexインクリメント
 			  waypointIndexPatrol++;
-
-
-			//アクション走行の合間に敵探しをこまめに実施する。
-			sendGoalFlgAtAimEnemyTarget = true;
-			ros::param::set("actionMode","aimEnemyTarget");
-
               		  // サーバーにgoalを送信し、次のwaypointへ走行させる
               		  ac.sendGoal(goal);
               		  //ac.sendGoal(goal, &feedbackCb);
 
 
 		}else if(waypointIndexPatrol==2){
-		  //２つ目のWaypointに到着
+		  //１つ目のWaypointに到着
 
 
 
@@ -753,7 +727,7 @@ int main(int argc, char** argv){
 			//カメラで敵探し
 			//見つかった場合：　searchEnemyResultパラメータ確認＋Topic受信（前方, 右、左）
 			//見つからない場合：　searchEnemyResultパラメータ確認
-			//ros::param::set("actionMode","searchEnemy");
+			ros::param::set("actionMode","searchEnemy");
 
 			//★敵が右方向にいるなら、waypointIndexPatrol+1へ走行し、SubModeをfight_enemyにする
 
@@ -777,11 +751,51 @@ int main(int argc, char** argv){
 			//★敵が右後部方向にいるなら、waypointIndexPatrol+4へ走行し、SubModeをfight_enemyにする
 
 
-
 			if(patrolSubMode.compare("preAdjustment")==0){
 			 //事前処理
 			 //ターゲット捜索し、点数を取得する
 			 //次のwaypointへ走行しやすいように姿勢を調整する
+
+			  //フィールドターゲットを探して点数を取得する
+				//ros::param::set("actionMode","aimTarget");
+			  //真正面のフィールドターゲットを探して点数を取得する
+			  //右へ回転し、右側のフィールドターゲットを探して点数を取得する
+			  for(int i=1;i<4;i++){
+				ROS_INFO("--------waypoint(1)--------- ");
+				direcIndicator = 10;
+				drivingControl.turnAround(direcIndicator);
+				//patrol_cource.turnAround(direcIndicator);
+				rate.sleep();
+			  }
+
+
+			//★右方向　敵探し
+			//★赤ランプで探す　
+
+
+			  //左へ回転し、左側のフィールドターゲットを探して点数を取得する
+			  for(int i=1;i<5;i++){
+				direcIndicator = -10;
+				drivingControl.turnAround(direcIndicator);
+				//patrol_cource.turnAround(direcIndicator);
+				rate.sleep();
+			  }
+
+
+			//★左方向　敵探し
+			//★赤ランプで探す　
+
+
+			  //右へ回転し、２つ目のwaypointへ走行しやすいように姿勢を調整する
+			  for(int i=1;i<3;i++){
+				direcIndicator = 10;
+				drivingControl.turnAround(direcIndicator);
+				//patrol_cource.turnAround(direcIndicator);
+				rate.sleep();
+			  }
+
+			//★前方方向　敵探し
+			//★赤ランプで探す　
 
 
 			 //サブ走行モード設定：patrolSubMode
@@ -791,11 +805,6 @@ int main(int argc, char** argv){
 
 			  // waypointIndexインクリメント
 			  waypointIndexPatrol++;
-
-			//アクション走行の合間に敵探しをこまめに実施する。
-			sendGoalFlgAtAimEnemyTarget = true;
-			ros::param::set("actionMode","aimEnemyTarget");
-
               		  // サーバーにgoalを送信し、次のwaypointへ走行させる
               		  ac.sendGoal(goal);
               		  //ac.sendGoal(goal, &feedbackCb);
@@ -804,9 +813,7 @@ int main(int argc, char** argv){
 
 
 		}else if(waypointIndexPatrol==3){
-			//３つ目のWaypointに到着
-
-
+			//２つ目のWaypointに到着
 			if(patrolSubMode.compare("preAdjustment")==0){
 			 //事前処理
 			 //ターゲット捜索し、点数を取得する
@@ -817,22 +824,30 @@ int main(int argc, char** argv){
 
 			  // waypointIndexインクリメント
 			  waypointIndexPatrol++;
-
-			//アクション走行の合間に敵探しをこまめに実施する。
-			sendGoalFlgAtSearchEnemy = true;
-			//ros::param::set("actionMode","searchEnemy");
-			ros::param::set("actionMode","aimEnemyTarget");
-
               		  // サーバーにgoalを送信し、次のwaypointへ走行させる
-              		  //ac.sendGoal(goal);
+              		  ac.sendGoal(goal);
 
 		}else if(waypointIndexPatrol==4){
+			//３つ目のWaypointに到着
+			if(patrolSubMode.compare("preAdjustment")==0){
+			 //事前処理
+			 //ターゲット捜索し、点数を取得する
+			 //次のwaypointへ走行しやすいように姿勢を調整する
+			 //サブ走行モード設定：patrolSubMode
+			   ros::param::set("patrolSubMode","movingToGoal");
+			}
+
+			  // waypointIndexインクリメント
+			  waypointIndexPatrol++;
+              		  // サーバーにgoalを送信し、次のwaypointへ走行させる
+              		  ac.sendGoal(goal);
+
+		}else if(waypointIndexPatrol==5){
 			//４つ目のWaypointに到着
 			if(patrolSubMode.compare("preAdjustment")==0){
 			 //事前処理
 			 //ターゲット捜索し、点数を取得する
 			 //次のwaypointへ走行しやすいように姿勢を調整する
-
 
 			  //フィールドターゲットを探して点数を取得する
 				//ros::param::set("actionMode","aimTarget");
@@ -844,54 +859,40 @@ int main(int argc, char** argv){
 				//patrol_cource.turnAround(direcIndicator);
 				rate.sleep();
 			  }
-
-			//★右方向　敵探し
-			//★赤ランプで探す　
-			//アクション走行の合間に敵探しをこまめに実施する。
-			sendGoalFlgAtAimEnemyTarget = false;
-			ros::param::set("actionMode","aimEnemyTarget");
-				rate.sleep();
-/*
-*/
-			  //左へ回転し、左側のフィールドターゲットを探して点数を取得する
-			  for(int i=1;i<5;i++){
-				direcIndicator = -10;
+			  //右へ回転し、右側のフィールドターゲットを探して点数を取得する
+			  for(int i=1;i<4;i++){
+				direcIndicator = 10;
 				drivingControl.turnAround(direcIndicator);
 				//patrol_cource.turnAround(direcIndicator);
 				rate.sleep();
 			  }
 
+			  //右へ回転し、右側のフィールドターゲットを探して点数を取得する
+			  for(int i=1;i<4;i++){
+				direcIndicator = 10;
+				drivingControl.turnAround(direcIndicator);
+				//patrol_cource.turnAround(direcIndicator);
+				rate.sleep();
+			  }
 
-			//★左方向　敵探し
-			//★赤ランプで探す　
-
-
-
-			 //サブ走行モード設定：patrolSubMode
-			   ros::param::set("patrolSubMode","movingToGoal");
-			}
-
-			  // waypointIndexインクリメント
-			  waypointIndexPatrol++;
-
-
-
-			//アクション走行の合間に敵探しをこまめに実施する。
-			sendGoalFlgAtAimEnemyTarget = true;
-			ros::param::set("actionMode","aimEnemyTarget");
-
-
-              		  // サーバーにgoalを送信し、次のwaypointへ走行させる
-              		  ac.sendGoal(goal);
-
-		}else if(waypointIndexPatrol==5){
-			//５つ目のWaypointに到着
-
-
-			if(patrolSubMode.compare("preAdjustment")==0){
-			 //事前処理
-			 //ターゲット捜索し、点数を取得する
-			 //次のwaypointへ走行しやすいように姿勢を調整する
+			  //左へ回転し、５つ目のwaypointへ走行しやすいように姿勢を調整する
+				//ros::param::set("actionMode","aimTarget");
+			  for(int i=1;i<4;i++){
+				direcIndicator = -10;
+				drivingControl.turnAround(direcIndicator);
+				//patrol_cource.turnAround(direcIndicator);
+				rate.sleep();
+			  }
+			  //後ろへバックし、５つ目のwaypointへ走行しやすいように姿勢を調整する
+			  //for(int i=1;i<2;i++){
+			  //	drivingControl.moveBackward();
+			  //	rate.sleep();
+			  //}
+			  //前へ進み、５つ目のwaypointへ走行しやすいように姿勢を調整する
+			  //for(int i=1;i<2;i++){
+			  //	drivingControl.moveForward();
+			  //	rate.sleep();
+			  //}
 
 
 			 //サブ走行モード設定：patrolSubMode
@@ -900,20 +901,24 @@ int main(int argc, char** argv){
 
 			  // waypointIndexインクリメント
 			  waypointIndexPatrol++;
-
-			//アクション走行の合間に敵探しをこまめに実施する。
-			sendGoalFlgAtAimEnemyTarget = true;
-			ros::param::set("actionMode","aimEnemyTarget");
-
               		  // サーバーにgoalを送信し、次のwaypointへ走行させる
               		  ac.sendGoal(goal);
 
 		}else if(waypointIndexPatrol==6){
-			//６つ目のWaypointに到着
+			//５つ目のWaypointに到着
 			if(patrolSubMode.compare("preAdjustment")==0){
 			  //事前処理
 			  //ターゲット捜索し、点数を取得する
 			  //次のwaypointへ走行しやすいように姿勢を調整する
+
+			  //左へ回転し、６つ目のwaypointへ走行しやすいように姿勢を調整する
+				//ros::param::set("actionMode","aimTarget");
+			  for(int i=1;i<4;i++){
+				direcIndicator = -10;
+				drivingControl.turnAround(direcIndicator);
+				//patrol_cource.turnAround(direcIndicator);
+				rate.sleep();
+			  }
 
 			  //サブ走行モード設定：patrolSubMode
 			   ros::param::set("patrolSubMode","movingToGoal");
@@ -921,204 +926,92 @@ int main(int argc, char** argv){
 
 			  // waypointIndexインクリメント
 			  waypointIndexPatrol++;
-
-			//アクション走行の合間に敵探しをこまめに実施する。
-			sendGoalFlgAtSearchEnemy = true;
-			//ros::param::set("actionMode","searchEnemy");
-			ros::param::set("actionMode","aimEnemyTarget");
-
               		  // サーバーにgoalを送信し、次のwaypointへ走行させる
-              		  //ac.sendGoal(goal);
+              		  ac.sendGoal(goal);
 
 		}else if(waypointIndexPatrol==7){
+			//６つ目のWaypointに到着
+			if(patrolSubMode.compare("preAdjustment")==0){
+			 //事前処理
+			 //ターゲット捜索し、点数を取得する
+			 //次のwaypointへ走行しやすいように姿勢を調整する
+			 //サブ走行モード設定：patrolSubMode
+			   ros::param::set("patrolSubMode","movingToGoal");
+			}
+
+			  // waypointIndexインクリメント
+			  waypointIndexPatrol++;
+              		  // サーバーにgoalを送信し、次のwaypointへ走行させる
+              		  ac.sendGoal(goal);
+
+		}else if(waypointIndexPatrol==8){
 			//７つ目のWaypointに到着
 			if(patrolSubMode.compare("preAdjustment")==0){
 			 //事前処理
 			 //ターゲット捜索し、点数を取得する
 			 //次のwaypointへ走行しやすいように姿勢を調整する
 
+
 			  //フィールドターゲットを探して点数を取得する
 				//ros::param::set("actionMode","aimTarget");
-			  //真正面のフィールドターゲットを探して点数を取得する
-			  //右へ回転し、右側のフィールドターゲットを探して点数を取得する
-			  for(int i=1;i<4;i++){
-				direcIndicator = 10;
-				drivingControl.turnAround(direcIndicator);
-				//patrol_cource.turnAround(direcIndicator);
-				rate.sleep();
-			  }
-
-			//★右方向　敵探し
-			//★赤ランプで探す　
-			//アクション走行の合間に敵探しをこまめに実施する。
-			sendGoalFlgAtAimEnemyTarget = false;
-			ros::param::set("actionMode","aimEnemyTarget");
-				rate.sleep();
-/*
-*/
 			  //左へ回転し、左側のフィールドターゲットを探して点数を取得する
-			  for(int i=1;i<5;i++){
+			  for(int i=1;i<4;i++){
 				direcIndicator = -10;
 				drivingControl.turnAround(direcIndicator);
 				//patrol_cource.turnAround(direcIndicator);
 				rate.sleep();
 			  }
-
-
-			//★左方向　敵探し
-			//★赤ランプで探す　
-
-
+			  //左へ回転し、左側のフィールドターゲットを探して点数を取得する
+			  for(int i=1;i<4;i++){
+				direcIndicator = -10;
+				drivingControl.turnAround(direcIndicator);
+				//patrol_cource.turnAround(direcIndicator);
+				rate.sleep();
+			  }
+			  //左へ回転し、左側のフィールドターゲットを探して点数を取得する
+			  for(int i=1;i<4;i++){
+				direcIndicator = -10;
+				drivingControl.turnAround(direcIndicator);
+				//patrol_cource.turnAround(direcIndicator);
+				rate.sleep();
+			  }
+			  //右へ回転し、８つ目のwaypointへ走行しやすいように姿勢を調整する
+			  for(int i=1;i<8;i++){
+				direcIndicator = 10;
+				drivingControl.turnAround(direcIndicator);
+				//patrol_cource.turnAround(direcIndicator);
+				rate.sleep();
+			  }
 			 //サブ走行モード設定：patrolSubMode
 			   ros::param::set("patrolSubMode","movingToGoal");
 			}
 
 			  // waypointIndexインクリメント
 			  waypointIndexPatrol++;
-
-			//アクション走行の合間に敵探しをこまめに実施する。
-			sendGoalFlgAtAimEnemyTarget = true;
-			ros::param::set("actionMode","aimEnemyTarget");
-
-              		  // サーバーにgoalを送信し、次のwaypointへ走行させる
-              		  ac.sendGoal(goal);
-
-		}else if(waypointIndexPatrol==8){
-			//８つ目のWaypointに到着
-			if(patrolSubMode.compare("preAdjustment")==0){
-			 //事前処理
-			 //ターゲット捜索し、点数を取得する
-			 //次のwaypointへ走行しやすいように姿勢を調整する
-
-			 //サブ走行モード設定：patrolSubMode
-			   ros::param::set("patrolSubMode","movingToGoal");
-			}
-
-			  // waypointIndexインクリメント
-			  waypointIndexPatrol++;
-
-
-			//アクション走行の合間に敵探しをこまめに実施する。
-			sendGoalFlgAtAimEnemyTarget = true;
-			ros::param::set("actionMode","aimEnemyTarget");
-
               		  // サーバーにgoalを送信し、次のwaypointへ走行させる
               		  ac.sendGoal(goal);
 
 		//}else if (waypointIndexPatrol>=patrolWaypointsNum) {
-		}else if(waypointIndexPatrol==9){
-			//９つ目のWaypointに到着
-			if(patrolSubMode.compare("preAdjustment")==0){
-			 //事前処理
-			 //ターゲット捜索し、点数を取得する
-			 //次のwaypointへ走行しやすいように姿勢を調整する
-			 //サブ走行モード設定：patrolSubMode
-			   ros::param::set("patrolSubMode","movingToGoal");
-			}
-
-			  // waypointIndexインクリメント
-			  waypointIndexPatrol++;
-
-			//アクション走行の合間に敵探しをこまめに実施する。
-			sendGoalFlgAtSearchEnemy = true;
-			//ros::param::set("actionMode","searchEnemy");
-			ros::param::set("actionMode","aimEnemyTarget");
-
-              		  // サーバーにgoalを送信し、次のwaypointへ走行させる
-              		  //ac.sendGoal(goal);
-
-		}else if(waypointIndexPatrol==10){
-			//１０つ目のWaypointに到着
-			if(patrolSubMode.compare("preAdjustment")==0){
-			 //事前処理
-			 //ターゲット捜索し、点数を取得する
-			 //次のwaypointへ走行しやすいように姿勢を調整する
-
-
-			  //フィールドターゲットを探して点数を取得する
-				//ros::param::set("actionMode","aimTarget");
-			  //真正面のフィールドターゲットを探して点数を取得する
-			  //右へ回転し、右側のフィールドターゲットを探して点数を取得する
-			  for(int i=1;i<4;i++){
-				direcIndicator = 10;
-				drivingControl.turnAround(direcIndicator);
-				//patrol_cource.turnAround(direcIndicator);
+		}else if (waypointIndexPatrol>=9) {
+			//８つ目のWaypointに到着
+			  if(patrolSubMode.compare("preAdjustment")==0){
+			  //少し前に出て、敵を探しやすいように姿勢を調整する
+			  for(int i=1;i<3;i++){
+				drivingControl.moveForward();
 				rate.sleep();
 			  }
-
-			//★右方向　敵探し
-			//★赤ランプで探す　
-			//アクション走行の合間に敵探しをこまめに実施する。
-			sendGoalFlgAtAimEnemyTarget = false;
-			ros::param::set("actionMode","aimEnemyTarget");
-				rate.sleep();
-/*
-*/
-			  //左へ回転し、左側のフィールドターゲットを探して点数を取得する
-			  for(int i=1;i<5;i++){
+			  //左へ少し回転し、敵を探しやすいように姿勢を調整する
+			  for(int i=1;i<2;i++){
 				direcIndicator = -10;
 				drivingControl.turnAround(direcIndicator);
-				//patrol_cource.turnAround(direcIndicator);
 				rate.sleep();
 			  }
+			  //敵に向かわせせるようにして点数を取得する
+			  //ros::param::set("actionMode","searchEnemy");
 
-
-			//★左方向　敵探し
-			//★赤ランプで探す　
-
-
-			 //サブ走行モード設定：patrolSubMode
-			   ros::param::set("patrolSubMode","movingToGoal");
+			  //サブ走行モード設定：patrolSubMode
+			  ros::param::set("patrolSubMode","movingToGoal");
 			}
-
-			  // waypointIndexインクリメント
-			  waypointIndexPatrol++;
-
-
-			//アクション走行の合間に敵探しをこまめに実施する。
-			sendGoalFlgAtAimEnemyTarget = true;
-			ros::param::set("actionMode","aimEnemyTarget");
-
-              		  // サーバーにgoalを送信し、次のwaypointへ走行させる
-              		  ac.sendGoal(goal);
-
-		}else if(waypointIndexPatrol==11){
-			//１１つ目のWaypointに到着
-			if(patrolSubMode.compare("preAdjustment")==0){
-			 //事前処理
-			 //ターゲット捜索し、点数を取得する
-			 //次のwaypointへ走行しやすいように姿勢を調整する
-			 //サブ走行モード設定：patrolSubMode
-			   ros::param::set("patrolSubMode","movingToGoal");
-			}
-
-			  // waypointIndexインクリメント
-			  waypointIndexPatrol++;
-
-			//アクション走行の合間に敵探しをこまめに実施する。
-			sendGoalFlgAtAimEnemyTarget = true;
-			ros::param::set("actionMode","aimEnemyTarget");
-
-              		  // サーバーにgoalを送信し、次のwaypointへ走行させる
-              		  ac.sendGoal(goal);
-
-		}else if (waypointIndexPatrol>=12) {
-			//１２つ目のWaypointに到着
-
-
-			if(patrolSubMode.compare("preAdjustment")==0){
-			 //事前処理
-			 //ターゲット捜索し、点数を取得する
-			 //次のwaypointへ走行しやすいように姿勢を調整する
-			 //サブ走行モード設定：patrolSubMode
-			   ros::param::set("patrolSubMode","movingToGoal");
-
-			}
-
-			//アクション走行の合間に敵探しをこまめに実施する。
-			sendGoalFlgAtSearchEnemy = true;
-			//ros::param::set("actionMode","searchEnemy");
-			ros::param::set("actionMode","aimEnemyTarget");
 
 			  //最後のwaypointでは、点数を取得したあとに、試合終了まで、そのまま待機する
 			  //ros::param::set("actionMode","standBy");
@@ -1126,6 +1019,8 @@ int main(int argc, char** argv){
 			  waypointIndexPatrol=0;
               		  // サーバーにgoalを送信しない
               		  //ac.sendGoal(goal);
+		}else {
+
 		}
 
               	// 結果が返ってくるまで30.0[s] 待つ。ここでブロックされる。
@@ -1136,11 +1031,11 @@ int main(int argc, char** argv){
 		//double actionTime=30.0;
       		if(ros::param::get("/actionDuration",actionDuration)){
           		if(actionDuration.compare("middleTime")==0){
-			  actionTime=4.0;
+			  actionTime=6.0;
 			}
           		if(actionDuration.compare("longTime")==0){
 			  //actionDuartion: longTime
-			  actionTime=6.0;
+			  actionTime=10.0;
 			}
 		}
 
@@ -1156,27 +1051,25 @@ int main(int argc, char** argv){
                		ROS_INFO("nextWayPointIndex: No.%d",goalWayPointIndex);
 			//ros::param::set("patrolWaypointIndex",waypointIndexPatrol);
 			//サブ走行モード設定：patrolSubMode
-			ros::param::set("patrolSubMode","preAdjustment");
-			//ros::param::set("patrolSubMode","movingToGoal");
+			//ros::param::set("patrolSubMode","preAdjustment");
+			ros::param::set("patrolSubMode","movingToGoal");
 
 			//アクション走行の合間に敵探しをこまめに実施する。
-			//sendGoalFlgAtAimEnemyTarget = false;
-			//ros::param::set("actionMode","aimEnemyTarget");
-
+			//ros::param::set("actionMode","searchEnemy");
 			//scanEnemyノードを動作させるために、走行停止してから５秒待つ
-			//drivingControl.setVel(0.0,0.0);
+			drivingControl.setVel(0.0,0.0);
 			//rate.sleep();
 			//rate.sleep();
 			//rate.sleep();
 			//rate.sleep();
 			//rate.sleep();
-			//rate.sleep();
-			//ros::param::set("actionMode","scanEnemy");
+			rate.sleep();
+			ros::param::set("actionMode","scanEnemy");
 
 		}else {
                 	ROS_INFO("Failed: waypointIndexPatrol No.%d (%s)",(waypointIndexPatrol-1), state.toString().c_str());
 			//サブ走行モード設定(patrolSubMode)を変更しない：movingToGoalのまま
-			ros::param::set("patrolSubMode","movingToGoal");
+			//ros::param::set("patrolSubMode","movingToGoal");
 
 			//次のwaypointへ進まないようにする
 			waypointIndexPatrol--;
@@ -1192,21 +1085,16 @@ int main(int argc, char** argv){
 			//ros::param::set("actionMode","naviRecovery");
 
 			//アクション走行の合間に敵探しをこまめに実施する。
-			sendGoalFlgAtAimEnemyTarget = false;
-			ros::param::set("actionMode","aimEnemyTarget");
-
-			//アクション走行の合間に敵探しをこまめに実施する。
 			//ros::param::set("actionMode","searchEnemy");
-
 			//scanEnemyノードを動作させるために、走行停止してから５秒待つ
-			//drivingControl.setVel(0.0,0.0);
+			drivingControl.setVel(0.0,0.0);
 			//rate.sleep();
 			//rate.sleep();
 			//rate.sleep();
 			//rate.sleep();
-			//rate.sleep();
-			//rate.sleep();
-			//ros::param::set("actionMode","scanEnemy");
+			rate.sleep();
+			rate.sleep();
+			ros::param::set("actionMode","scanEnemy");
 
             	}
 	  } else{
@@ -1222,10 +1110,8 @@ int main(int argc, char** argv){
 
 	  }
 
-
           if(actionMode.compare("searchEnemy")==0){
 
-/*
 		//敵探しするために５秒待つ
 		rate.sleep();
 		rate.sleep();
@@ -1237,10 +1123,7 @@ int main(int argc, char** argv){
           		if(searchEnemyResult.compare("fail")==0){
                                 ROS_INFO("!!!***!!! back to patrol mode (1)");
 				ros::param::set("actionMode","patrol");
-              		  	// サーバーにgoalを送信
-              		 	if (sendGoalFlgAtSearchEnemy) ac.sendGoal(goal);
-
-
+/*
 				if(enemyDirection.compare("front")==0){
 				}
 				if(enemyDirection.compare("right")==0){
@@ -1249,16 +1132,16 @@ int main(int argc, char** argv){
 				}
 				if(enemyDirection.compare("notexist")==0){
 				}
+*/
 			}
           		if(searchEnemyResult.compare("found")==0){
 				ros::param::set("actionMode","aimEnemyTarget");
 			}
 		}
-*/
 
 	  }
           if(actionMode.compare("aimEnemyTarget")==0){
-/*
+
 		//敵のターゲットを探すために５秒待つ
 		rate.sleep();
 		rate.sleep();
@@ -1270,9 +1153,7 @@ int main(int argc, char** argv){
           		if(aimEnemyTargetResult.compare("fail")==0){
                                 ROS_INFO("!!!***!!! back to patrol mode (2)");
 				ros::param::set("actionMode","patrol");
-              		  	// サーバーにgoalを送信
-              		 	if(sendGoalFlgAtAimEnemyTarget) ac.sendGoal(goal);
-
+/*
 				if(enemyDirection.compare("front")==0){
 				}
 				if(enemyDirection.compare("right")==0){
@@ -1281,12 +1162,13 @@ int main(int argc, char** argv){
 				}
 				if(enemyDirection.compare("notexist")==0){
 				}
+*/
 			}
           		if(aimEnemyTargetResult.compare("found")==0){
-				ros::param::set("actionMode","searchEnemy");
+				//ros::param::set("actionMode","aimEnemyTarget");
 			}
 		}
-*/
+
 	  }
 
 
